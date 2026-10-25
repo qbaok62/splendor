@@ -2,6 +2,6 @@
   "name": "splendor",
   "version": "1.0.0",
   "private": true,
-  "scripts": { "start": "node server.js" },
+  "scripts": { "start": "node server.js", "test": "node test.js && node test-expansions.js && node test-i18n.js", "test:bots": "node test-bot.js" },
   "engines": { "node": ">=18" }
 }

@@ -2,6 +2,10 @@
 // Âm thanh + nhạc nền kiểu Phục Hưng (tự tổng hợp bằng WebAudio, không cần file) và hoạt ảnh thao tác.
 const FX = (function () {
   const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let lang = 'vi';
+  const i18n = () => (typeof SPLENDOR_I18N !== 'undefined' ? SPLENDOR_I18N : window.SPLENDOR_I18N);
+  const tr = (key) => { const I = i18n(); return I ? I.tr(lang, key) : key; };
+  function setLang(code) { const I = i18n(); lang = I ? I.normalizeLang(code) : (String(code).toLowerCase().startsWith('en') ? 'en' : 'vi'); }
   const store = {
     get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
@@ -341,7 +345,7 @@ const FX = (function () {
       // quý tộc
       for (const nid of p.nobles) if (!o.nobles.includes(nid)) {
         const a = snap.nobles[nid]; if (a && target) { fly(mk(nobleHtml(nid, false)), a, target, { dur: 900, scale: .3, arc: -80 }); }
-        sparkleAt(target, 16, '#fff0a8'); sfx('noble', 300); floatText(target, '👑 Quý tộc!', 'noble'); played = true;
+        sparkleAt(target, 16, '#fff0a8'); sfx('noble', 300); floatText(target, tr('flash.noble'), 'noble'); played = true;
       }
     }
     // thẻ mới được chia vào ô trống
@@ -362,7 +366,7 @@ const FX = (function () {
     }
     // đổi lượt
     const wasMine = prev.players[prev.turn].id === meId && prev.phase !== 'over', isMine = nw.players[nw.turn].id === meId && nw.phase !== 'over';
-    if (isMine && (!wasMine || prev.phase !== nw.phase || prev.turn !== nw.turn)) { sfx('turn', played ? 900 : 100); flash(nw.phase === 'main' ? 'Đến lượt bạn' : 'Hành động của bạn'); }
+    if (isMine && (!wasMine || prev.phase !== nw.phase || prev.turn !== nw.turn)) { sfx('turn', played ? 900 : 100); flash(tr(nw.phase === 'main' ? 'flash.turn' : 'flash.action')); }
     if (nw.phase === 'over' && prev.phase !== 'over') {
       const won = nw.winners.includes(meId);
       celebrate(won);
@@ -459,5 +463,5 @@ const FX = (function () {
     c.style.setProperty('--mx', (px * 100).toFixed(0) + '%'); c.style.setProperty('--my', (py * 100).toFixed(0) + '%');
   }, { passive: true });
 
-  return { celebrate, fireworks, tracks: () => TRACKS.map((t) => ({ id: t.id, name: t.name, desc: t.desc })), setTrack, setVolume, floatText, ctxState: () => ctx && ctx.state, SFX_NAMES: () => Object.keys(SFX), sfx, snapshot, diff, flash, setMusic, setSfx, unlock, state: () => ({ music: musicOn, sfx: sfxOn, track: trackId, mvol: musicVol, svol: sfxVol }), confetti };
+  return { celebrate, fireworks, tracks: () => TRACKS.map((t) => ({ id: t.id, name: t.name, desc: t.desc })), setLang, setTrack, setVolume, floatText, ctxState: () => ctx && ctx.state, SFX_NAMES: () => Object.keys(SFX), sfx, snapshot, diff, flash, setMusic, setSfx, unlock, state: () => ({ music: musicOn, sfx: sfxOn, track: trackId, mvol: musicVol, svol: sfxVol }), confetti };
 })();

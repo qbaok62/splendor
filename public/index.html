@@ -12,7 +12,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="theme-color" content="#14121a">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
-<title>Splendor - Chơi cùng bạn bè</title>
+<title>Splendor</title>
 <style>
 :root{
   --bg:#14121a;--panel:#231f2b;--panel2:#2c2735;--line:#4a3f2f;--txt:#f3ecdc;--mut:#a89f8f;--acc:#e8b923;--good:#46c07a;--bad:#e5534b;
@@ -30,7 +30,7 @@ button:active:not(:disabled){transform:translateY(1px)}
 button:disabled{opacity:.4;cursor:not-allowed}
 button.sec{background:linear-gradient(180deg,#3a3343,#2a2531);color:var(--txt);border:1px solid #5a4d3a;box-shadow:inset 0 1px 0 #ffffff14,0 2px 6px #0005}
 button.bad{background:linear-gradient(180deg,#f06a60,#b8332b);color:#fff;box-shadow:inset 0 1px 0 #fff5,0 2px 0 #6b1712}
-input{font:inherit;padding:.6em .8em;border-radius:8px;border:1px solid var(--line);background:#120f16;color:var(--txt);width:100%}
+input,select{font:inherit;padding:.6em .8em;border-radius:8px;border:1px solid var(--line);background:#120f16;color:var(--txt);width:100%}
 input:focus{outline:2px solid #e8b92388;outline-offset:1px}
 h1,h2,h3{margin:0}
 h1{font-family:var(--serif)} /* Cinzel không có dấu tiếng Việt: chỉ dùng cho chữ Latin & số */
@@ -208,7 +208,7 @@ h1{font-family:var(--serif)} /* Cinzel không có dấu tiếng Việt: chỉ d�
 .pile.k-black{background:linear-gradient(160deg,#55555f,#1c1c23)}
 .pile b{font-family:var(--serif);font-size:1.1rem;line-height:1;-webkit-text-stroke:.8px #000a;paint-order:stroke fill;color:#fff}
 .pile i{position:absolute;top:-8px;right:-8px;font-style:normal;font-size:.68rem;font-weight:800;background:#1a1208;color:#ffe08a;border:1px solid #e8b92399;border-radius:8px;padding:0 4px}
-.pnob{display:flex;gap:4px;margin-left:auto}
+.pnob{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
 .pnob .noble{width:44px;height:44px;box-shadow:inset 0 0 0 2px #d8b25a,0 2px 5px #000a}
 .pnob .noble .nr{display:none}.pnob .noble .np{font-size:.9rem}
 .seat .res{gap:6px;flex-wrap:nowrap}
@@ -224,6 +224,66 @@ h1{font-family:var(--serif)} /* Cinzel không có dấu tiếng Việt: chỉ d�
   .game.seats{grid-template-columns:1fr;grid-template-areas:"table" "bl" "tl" "tr" "br" "foot"}
   .foot{grid-template-columns:1fr}
 }
+/* ---- bộ mở rộng ---- */
+.exps{display:flex;flex-direction:column;gap:6px;margin:8px 0}
+.exp{display:flex;align-items:flex-start;gap:9px;padding:8px 10px;background:#00000030;border:1px solid #ffffff10;border-radius:9px;cursor:pointer}
+.exp input{width:18px;height:18px;flex:none;margin:2px 0 0;accent-color:var(--acc);cursor:pointer}
+.exp b{display:block;font-size:.9rem}.exp small{display:block;color:var(--mut);font-size:.75rem;line-height:1.35;margin-top:2px}
+.exp.on{border-color:#e8b92366;background:#e8b9230d}.exp.lock{cursor:default;opacity:.75}
+.expbadges{display:flex;gap:5px;flex-wrap:wrap;margin:0 0 8px}
+.expbadges span{font-size:.68rem;font-weight:800;letter-spacing:.05em;color:#1d1605;background:linear-gradient(180deg,#ffe08a,#d8a512);border-radius:5px;padding:2px 7px}
+.cities{display:flex;gap:9px;flex-wrap:wrap;min-height:92px;align-items:center;margin-bottom:4px}
+.city{width:152px;height:76px;border-radius:8px;position:relative;overflow:hidden;flex:none;cursor:default;color:#fff;
+  background:linear-gradient(135deg,#604a2d,#241b13 55%,#10243a);border:1px solid #000;
+  box-shadow:inset 0 0 0 2px #d8b25a,inset 0 0 0 3px #0008,0 4px 10px #000a;transition:transform .14s}
+.city::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(115deg,#ffffff0a 0 2px,transparent 2px 10px);opacity:.8}
+.city .ct{position:absolute;left:8px;top:6px;font-family:var(--serif);font-size:.72rem;letter-spacing:.12em;color:#ffe8a6;text-shadow:0 1px 2px #000}
+.city .cp{position:absolute;left:8px;bottom:6px;font-family:var(--serif);font-size:1.7rem;font-weight:800;color:#fff;text-shadow:0 2px 3px #000,-1px -1px 0 #000,1px -1px 0 #000}
+.city .creq{position:absolute;right:7px;bottom:7px;display:flex;gap:3px;align-items:center}
+.city .creq .cost{width:1.25rem;height:1.25rem;font-size:.78rem;border-radius:3px;border-width:1px}
+.city .creq .same{width:1.4rem;height:1.4rem;font-size:.82rem;border-radius:4px;background:linear-gradient(145deg,#ffe08a,#a8730a);color:#1b1305;-webkit-text-stroke:0;border:1px solid #fff6}
+.city.pick{cursor:pointer;box-shadow:inset 0 0 0 3px #d8b25a,0 0 0 3px var(--good),0 0 18px #46c07a99;animation:pulse 1.4s infinite}
+.city.pick:hover{transform:translateY(-3px)}
+.city.taken{width:62px;height:40px;box-shadow:inset 0 0 0 2px #d8b25a,0 2px 5px #000a}
+.city.taken .ct{display:none}.city.taken .cp{font-size:1rem;left:5px;bottom:4px}.city.taken .creq{display:none}
+.posts{display:flex;gap:7px;flex-wrap:wrap;margin:3px 0 8px;align-items:stretch}
+.post{width:142px;aspect-ratio:250/167;border-radius:8px;position:relative;background:linear-gradient(160deg,#3d3340,#201b26);
+  background-size:cover;background-position:center;border:1px solid #6b5631;box-shadow:inset 0 0 0 1px #ffffff0d,0 3px 8px #0008;cursor:default;overflow:hidden}
+.post .owners{position:absolute;right:4px;top:4px;display:flex;gap:2px;flex-wrap:wrap;justify-content:flex-end;max-width:58px}
+.post .owners i{width:12px;height:12px;border-radius:50%;background:var(--pc);border:1px solid #0009;box-shadow:0 0 0 1px #fff4}
+.post.pick{cursor:pointer;box-shadow:inset 0 0 0 2px #d8b25a,0 0 0 2px var(--good),0 0 16px #46c07a88;animation:pulse 1.4s infinite}
+.post.pick:hover{transform:translateY(-2px)}
+.post .prog{position:absolute;left:0;right:0;bottom:0;height:3px;background:#ffffff0e}.post .prog u{display:block;height:100%;background:var(--good)}
+.postminis{display:flex;gap:3px;margin-left:4px}.postminis img{width:30px;height:20px;object-fit:cover;border:1px solid #d8b25a66;border-radius:4px;box-shadow:0 1px 3px #0008}
+.strongchip{display:inline-flex;align-items:center;gap:2px;font-size:.68rem;color:#ffe8a6;background:#1b1510cc;border:1px solid #d8b25a66;border-radius:9px;padding:0 5px}
+.strongchip img{width:12px;height:16px;object-fit:contain}
+.strongmark{position:absolute;right:3px;bottom:calc(var(--fs)*2.1);display:flex;flex-direction:column;align-items:flex-end;gap:1px;z-index:3;pointer-events:none}
+.strongmark img{display:block;width:calc(var(--fs)*1.55);height:auto;max-height:calc(var(--fs)*2.1);object-fit:contain;filter:drop-shadow(0 1px 2px #000c)}
+.card.locked{filter:saturate(.45) brightness(.7)}
+.card.sh-target{outline:3px solid var(--acc);outline-offset:2px;box-shadow:0 0 20px #e8b92399,0 4px 10px #000a;animation:shpulse 1.4s infinite}
+.card.sh-target:hover{transform:translateY(-4px) scale(1.03)}
+.card.sh-remove{outline-color:var(--bad);box-shadow:0 0 20px #e5534b99,0 4px 10px #000a;animation:shremove 1.4s infinite}
+.card.locked.sh-remove{filter:none}
+@keyframes shpulse{50%{outline-color:#fff2b8;box-shadow:0 0 30px #e8b923cc,0 4px 10px #000a}}
+@keyframes shremove{50%{outline-color:#ffb0aa;box-shadow:0 0 30px #e5534bcc,0 4px 10px #000a}}
+.lvrow .rowsep{width:1px;align-self:stretch;margin:0 2px;background:linear-gradient(#0000,#d8b25a66,#0000)}
+.card.orient{box-shadow:inset 0 0 0 2px #9c71d6,0 3px 7px #0008}
+.card.b-gold{background:linear-gradient(155deg,#7c6331,#3a2b1a 52%,#261d2f)}
+.card.orient .orientmark{position:absolute;left:3px;right:3px;bottom:16px;font-size:.48rem;line-height:1.1;color:#f0dcff;text-align:center;background:#2b1746d9;border:1px solid #b88bea66;border-radius:3px;padding:1px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+.card.orient .lvm{bottom:2px}
+.card.orient .copybonus{font-size:1.15rem;color:#e7c9ff;text-shadow:0 1px 3px #000}
+.card.virtual{background:linear-gradient(160deg,#8b6b2e,#2b2111 55%,#4a2f53)}
+.choicegrid.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px}
+.choicegrid.cards .card{--cw:110px;cursor:pointer}
+.choicegrid{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0;max-height:46vh;overflow:auto}
+.choicegrid button{flex:1 1 45%;min-width:150px;font-size:.82rem;padding:.65em .7em}
+.choicegrid .sec{color:var(--txt)}
+.tokchoices{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin:12px 0}
+.tokchoices .tok{cursor:pointer}
+@media(max-width:560px){
+  .city{width:calc((100vw - 54px)/2);height:68px}.city .cp{font-size:1.35rem}.post{width:calc((100vw - 54px)/2)}
+  .choicegrid button{flex:1 1 100%}
+}
 </style>
 </head>
 <body>
@@ -233,6 +293,8 @@ h1{font-family:var(--serif)} /* Cinzel không có dấu tiếng Việt: chỉ d�
 <link rel="stylesheet" href="fx2.css">
 <link rel="stylesheet" href="fx3.css">
 <script src="data.js"></script>
+<script src="orient-data.js"></script>
+<script src="i18n.js"></script>
 <script src="fx.js"></script>
 <script src="app.js"></script>
 </body>

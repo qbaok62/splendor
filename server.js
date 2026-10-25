@@ -10,6 +10,7 @@ const { Worker } = require('worker_threads');
 const engine = require('./engine');
 const bot = require('./bot');
 const store = require('./store');
+const { tr, normalizeLang, LANGS } = require('./public/i18n.js');
 
 const PORT = process.env.PORT || 3000;
 const PUB = path.join(__dirname, 'public');
@@ -27,19 +28,30 @@ function roomCode() {
     if (!rooms.has(c)) return c;
   }
 }
-const cleanName = (n) => String(n || '').replace(/[<>]/g, '').trim().slice(0, 16) || 'Người chơi';
-const newMember = (name, extra) => ({ id: rid(), token: rid(), name: cleanName(name), waiters: new Set(), lastSeen: Date.now(), ...extra });
-const newRoom = (code, host) => ({ code, hostId: host.id, members: [host], game: null, created: Date.now(), lastActive: Date.now(), version: 1,
-  settings: { timer: 0 }, scores: {}, chat: [], chatSeq: 0, nudge: null, deadline: 0 });
+const cleanName = (n, fallback) => String(n || '').replace(/[<>]/g, '').trim().slice(0, 16) || fallback;
+const newMember = (name, fallback) => ({ id: rid(), token: rid(), name: cleanName(name, fallback), waiters: new Set(), lastSeen: Date.now() });
+const roomLang = (room) => normalizeLang(room && room.settings && room.settings.lang);
+const tt = (room, key, vars) => tr(roomLang(room), key, vars);
+function renameBots(room) {
+  let n = 0;
+  for (const m of room.members) if (m.bot) {
+    n++;
+    m.name = `🤖 ${tr(roomLang(room), 'bot.' + (m.style || 'balanced'))}${n > 1 ? ' ' + n : ''}`;
+  }
+}
+const newRoom = (code, host, lang = 'vi') => ({ code, hostId: host.id, members: [host], game: null, created: Date.now(), lastActive: Date.now(), version: 1,
+  settings: { timer: 0, lang: normalizeLang(lang), expansions: { ...engine.DEFAULT_EXPANSIONS } }, scores: {}, chat: [], chatSeq: 0, nudge: null, deadline: 0 });
 
 const isOnline = (m) => m.bot || m.waiters.size > 0 || Date.now() - m.lastSeen < 8000;
 function lobbyView(room, me) {
+  const lang = roomLang(room);
   return {
     code: room.code, started: !!room.game, hostId: room.hostId, me, now: Date.now(),
     members: room.members.map((m) => ({ id: m.id, name: m.name, online: isOnline(m), bot: !!m.bot, style: m.style || null })),
     settings: room.settings, deadline: room.deadline || 0,
     scores: room.scores, chat: room.chat.slice(-40), nudge: room.nudge,
-    bots: Object.entries(bot.STYLES).map(([k, v]) => ({ key: k, name: v.name })),
+    expansionOptions: engine.EXPANSIONS.map((x) => ({ id: x.id, name: tr(lang, x.nameKey), desc: tr(lang, x.descKey) })),
+    bots: Object.entries(bot.STYLES).map(([k]) => ({ key: k, name: tr(lang, 'bot.' + k) })),
   };
 }
 function snapshot(room, m) {
@@ -67,7 +79,10 @@ async function restore() {
   for (const r of d.rooms) {
     if (Date.now() - r.lastActive > ROOM_TTL) continue;
     const room = { ...newRoom(r.code, { id: r.hostId }), ...r, version: (r.version || 0) + 1000,
+      settings: { timer: 0, ...r.settings, lang: normalizeLang(r.settings && r.settings.lang), expansions: { ...engine.DEFAULT_EXPANSIONS, ...(r.settings && r.settings.expansions) } },
       members: r.members.map((m) => ({ ...m, waiters: new Set(), lastSeen: 0 })) };
+    if (room.game) engine.upgradeGame(room.game);
+    renameBots(room);
     rooms.set(room.code, room);
     armTimer(room); scheduleBot(room);
   }
@@ -99,7 +114,7 @@ function autoMove(room, key) {
   const g = room.game; room._tt = null;
   if (!g || g.phase === 'over' || key !== `${g.turn}:${g.phase}:${g.round}`) return;
   const p = g.players[g.turn];
-  try { bot.play(g, p.id, 'balanced'); engine.addLog(g, `⏰ ${p.name} hết giờ — máy đi thay.`); } catch (e) { console.error('autoMove', e.message); }
+  try { bot.play(g, p.id, 'balanced'); engine.addLog(g, tt(room, 'log.timeout', { name: p.name })); } catch (e) { console.error('autoMove', e.message); }
   room.deadline = 0; commit(room);
 }
 
@@ -177,12 +192,12 @@ function body(req) {
 }
 function auth(b) {
   const room = rooms.get(String(b.room || '').toUpperCase());
-  if (!room) throw new Error('Không tìm thấy phòng');
+  if (!room) throw new Error(tr(b.lang, 'server.roomNotFound'));
   const m = b.token && room.members.find((x) => x.token === b.token);
-  if (!m) throw new Error('Phiên không hợp lệ');
+  if (!m) throw new Error(tt(room, 'server.sessionInvalid'));
   return { room, m };
 }
-const needHost = (room, m) => { if (m.id !== room.hostId) throw new Error('Chỉ chủ phòng làm được'); };
+const needHost = (room, m) => { if (m.id !== room.hostId) throw new Error(tt(room, 'server.hostOnly')); };
 
 async function api(req, res, url) {
   try {
@@ -206,17 +221,17 @@ async function api(req, res, url) {
     }
     const b = await body(req);
     if (url.pathname === '/api/create') {
-      const code = roomCode(), m = newMember(b.name);
-      rooms.set(code, newRoom(code, m));
+      const code = roomCode(), m = newMember(b.name, tr(b.lang, 'player.default'));
+      rooms.set(code, newRoom(code, m, b.lang));
       json(res, 200, { room: code, token: m.token });
       return persist();
     }
     if (url.pathname === '/api/join') {
       const room = rooms.get(String(b.room || '').toUpperCase().trim());
-      if (!room) throw new Error('Không tìm thấy phòng');
-      if (room.game) throw new Error('Phòng đã bắt đầu ván');
-      if (room.members.length >= 4) throw new Error('Phòng đã đủ 4 người');
-      const m = newMember(b.name);
+      if (!room) throw new Error(tr(b.lang, 'server.roomNotFound'));
+      if (room.game) throw new Error(tt(room, 'server.started'));
+      if (room.members.length >= 4) throw new Error(tt(room, 'server.full'));
+      const m = newMember(b.name, tt(room, 'player.default'));
       room.members.push(m);
       json(res, 200, { room: room.code, token: m.token });
       return commit(room);
@@ -225,21 +240,21 @@ async function api(req, res, url) {
     switch (url.pathname) {
       case '/api/start': {
         needHost(room, m);
-        if (room.game && room.game.phase !== 'over') throw new Error('Ván đang chơi');
-        if (room.members.length < 2) throw new Error('Cần ít nhất 2 người (thêm máy cũng được)');
-        room.game = engine.newGame(room.members.map((x) => ({ id: x.id, name: x.name })));
+        if (room.game && room.game.phase !== 'over') throw new Error(tt(room, 'server.inProgress'));
+        if (room.members.length < 2) throw new Error(tt(room, 'server.needTwo'));
+        room.game = engine.newGame(room.members.map((x) => ({ id: x.id, name: x.name })), { expansions: room.settings.expansions, lang: roomLang(room) });
         room.deadline = 0; room.tkey = null;
         break;
       }
       case '/api/rematch': { // chơi lại ngay với cùng nhóm
         needHost(room, m);
-        if (!room.game || room.game.phase !== 'over') throw new Error('Ván chưa kết thúc');
-        room.game = engine.newGame(room.members.map((x) => ({ id: x.id, name: x.name })));
+        if (!room.game || room.game.phase !== 'over') throw new Error(tt(room, 'server.notOver'));
+        room.game = engine.newGame(room.members.map((x) => ({ id: x.id, name: x.name })), { expansions: room.settings.expansions, lang: roomLang(room) });
         room.deadline = 0; room.tkey = null;
         break;
       }
       case '/api/action': {
-        if (!room.game) throw new Error('Chưa bắt đầu');
+        if (!room.game) throw new Error(tt(room, 'server.notStarted'));
         engine.apply(room.game, m.id, b.action || {});
         room.deadline = 0;
         break;
@@ -247,28 +262,41 @@ async function api(req, res, url) {
       case '/api/lobby': needHost(room, m); room.game = null; room.deadline = 0; room.tkey = null; break; // về sảnh
       case '/api/addbot': {
         needHost(room, m);
-        if (room.game) throw new Error('Chỉ thêm máy ở sảnh');
-        if (room.members.length >= 4) throw new Error('Phòng đã đủ 4 người');
-        const style = bot.STYLES[b.style] ? b.style : 'balanced', n = room.members.filter((x) => x.bot).length + 1;
-        room.members.push({ id: rid(), token: null, name: `🤖 ${bot.STYLES[style].name}${n > 1 ? ' ' + n : ''}`, bot: true, style, waiters: new Set(), lastSeen: 0 });
+        if (room.game) throw new Error(tt(room, 'server.addBotsLobbyOnly'));
+        if (room.members.length >= 4) throw new Error(tt(room, 'server.full'));
+        const style = bot.STYLES[b.style] ? b.style : 'balanced';
+        room.members.push({ id: rid(), token: null, name: '', bot: true, style, waiters: new Set(), lastSeen: 0 });
+        renameBots(room);
         break;
       }
       case '/api/rmbot': {
         needHost(room, m);
-        if (room.game) throw new Error('Chỉ xoá máy ở sảnh');
+        if (room.game) throw new Error(tt(room, 'server.removeBotsLobbyOnly'));
         room.members = room.members.filter((x) => !(x.bot && x.id === b.id));
         break;
       }
       case '/api/settings': {
         needHost(room, m);
-        const t = +b.timer; if (!TIMERS.includes(t)) throw new Error('Giá trị không hợp lệ');
-        room.settings.timer = t;
+        if (b.timer != null) {
+          const t = +b.timer; if (!TIMERS.includes(t)) throw new Error(tt(room, 'server.invalidValue'));
+          room.settings.timer = t;
+        }
+        if (b.lang != null) {
+          if (!LANGS.includes(b.lang)) throw new Error(tt(room, 'server.invalidValue'));
+          room.settings.lang = b.lang;
+          renameBots(room);
+        }
+        if (b.expansions && typeof b.expansions === 'object') {
+          for (const ex of engine.EXPANSIONS) if (Object.prototype.hasOwnProperty.call(b.expansions, ex.id)) {
+            room.settings.expansions[ex.id] = !!b.expansions[ex.id];
+          }
+        }
         break;
       }
       case '/api/chat': {
         const text = String(b.text || '').replace(/[<>]/g, '').trim().slice(0, 140);
-        if (!text) throw new Error('Tin nhắn trống');
-        if (Date.now() - (m.lastChat || 0) < 500) throw new Error('Gửi chậm lại một chút');
+        if (!text) throw new Error(tt(room, 'server.emptyMessage'));
+        if (Date.now() - (m.lastChat || 0) < 500) throw new Error(tt(room, 'server.slowDown'));
         m.lastChat = Date.now();
         room.chat.push({ i: ++room.chatSeq, id: m.id, name: m.name, text, emo: !!b.emo, t: Date.now() });
         if (room.chat.length > 80) room.chat.shift();
@@ -276,11 +304,11 @@ async function api(req, res, url) {
       }
       case '/api/nudge': {
         const g = room.game;
-        if (!g || g.phase === 'over') throw new Error('Không có ván đang chơi');
+        if (!g || g.phase === 'over') throw new Error(tt(room, 'server.noGame'));
         const cur = g.players[g.turn];
-        if (cur.id === m.id) throw new Error('Đang là lượt của bạn mà');
-        if (memberOf(room, cur.id).bot) throw new Error('Máy tự đi, không cần nhắc');
-        if (Date.now() - (room.nudge ? room.nudge.t : 0) < 20000) throw new Error('Vừa nhắc xong, đợi một chút');
+        if (cur.id === m.id) throw new Error(tt(room, 'server.yourTurn'));
+        if (memberOf(room, cur.id).bot) throw new Error(tt(room, 'server.botAuto'));
+        if (Date.now() - (room.nudge ? room.nudge.t : 0) < 20000) throw new Error(tt(room, 'server.nudgeCooldown'));
         room.nudge = { t: Date.now(), to: cur.id, from: m.name };
         break;
       }
@@ -289,7 +317,7 @@ async function api(req, res, url) {
         if (room.game) {
           Object.assign(m, { bot: true, style: 'balanced', token: null });
           for (const f of [...m.waiters]) f();
-          if (room.game.phase !== 'over') engine.addLog(room.game, `🚪 ${m.name} đã rời — máy chơi thay.`);
+          if (room.game.phase !== 'over') engine.addLog(room.game, tt(room, 'log.leave', { name: m.name }));
         } else room.members = room.members.filter((x) => x !== m);
         if (!room.members.some((x) => !x.bot)) rooms.delete(room.code);
         else if (room.hostId === m.id) room.hostId = room.members.find((x) => !x.bot).id;

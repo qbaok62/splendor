@@ -14,11 +14,21 @@ function clone(g) {
   return {
     players: g.players.map((p) => ({
       id: p.id, name: p.name, tokens: { ...p.tokens }, cards: p.cards.slice(), nobles: p.nobles.slice(),
+      cities: (p.cities || []).slice(), posts: (p.posts || []).slice(),
+      reservedNobles: (p.reservedNobles || []).slice(), cardBonuses: { ...(p.cardBonuses || {}) },
       reserved: p.reserved.map((r) => ({ id: r.id, fromDeck: r.fromDeck })), st: { take: 0, reserve: 0, buy: 0 },
     })),
     bank: { ...g.bank }, decks: { 1: g.decks[1].slice(), 2: g.decks[2].slice(), 3: g.decks[3].slice() },
     board: { 1: g.board[1].slice(), 2: g.board[2].slice(), 3: g.board[3].slice() },
-    nobles: g.nobles.slice(), turn: g.turn, phase: g.phase, finalRound: g.finalRound, winners: null,
+    orientDecks: g.orientDecks ? { 1: g.orientDecks[1].slice(), 2: g.orientDecks[2].slice(), 3: g.orientDecks[3].slice() } : null,
+    orientBoard: g.orientBoard ? { 1: g.orientBoard[1].slice(), 2: g.orientBoard[2].slice(), 3: g.orientBoard[3].slice() } : null,
+    nobles: g.nobles.slice(), cities: (g.cities || []).slice(), turn: g.turn, phase: g.phase, finalRound: g.finalRound, winners: null,
+    expansions: { ...g.expansions }, cityClaimed: g.cityClaimed,
+    strongholds: g.strongholds ? { 1: g.strongholds[1].map((x) => x.slice()), 2: g.strongholds[2].map((x) => x.slice()), 3: g.strongholds[3].map((x) => x.slice()) } : null,
+    pendingRefills: (g.pendingRefills || []).map((x) => ({ ...x })), postToken: g.postToken ? { ...g.postToken } : null,
+    strongholdAfter: g.strongholdAfter,
+    orientQueue: (g.orientQueue || []).map((x) => ({ ...x })), orientMain: g.orientMain, orientAfterConquest: g.orientAfterConquest,
+    orientFx: g.orientFx ? { ...g.orientFx } : null,
     log: NOLOG, round: g.round, series: NOLOG,
   };
 }
@@ -35,6 +45,7 @@ function determinize(g, meId) {
     hidden.forEach((r) => { r.id = pool.pop(); });
     s.decks[l] = pool;
   }
+  if (s.orientDecks) for (const l of [1, 2, 3]) s.orientDecks[l] = shuffleIn(s.orientDecks[l]);
   return s;
 }
 
@@ -57,7 +68,11 @@ function rootMoves(g, p, k, w) {
 // Chấm thế cờ (chưa hết ván): điểm + giá trị bonus/đá/quý tộc sắp đạt, so với đối thủ mạnh nhất.
 function strength(g, p) {
   const b = E.bonuses(p);
-  let v = E.points(p) + 0.45 * p.cards.length + 0.08 * (E.sum(p.tokens) + p.tokens.gold);
+  let v = E.points(p) + 0.45 * p.cards.length + 0.08 * (E.sum(p.tokens) + p.tokens.gold) + (p.cities || []).length * 4;
+  for (const cid of g.cities || []) {
+    const city = E.CITY_TILES[cid];
+    if (E.cityMet(city, b) && E.points(p) >= city.points) v += 10;
+  }
   for (const nid of g.nobles) {
     let miss = 0; for (const [c, n] of Object.entries(NOBLES[nid].req)) miss += Math.max(0, n - b[c]);
     if (miss <= 3) v += (3 - miss) * 0.5;

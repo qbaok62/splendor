@@ -5,7 +5,7 @@ Chạy: bấm đúp `start.bat` (hoặc `node server.js`). Không cần cài th�
 - Chơi cùng WiFi/LAN: bạn bè mở link `Cùng WiFi: http://IP:3000` in ra ở cửa sổ server.
 - Chơi qua Internet: chạy thêm `cloudflared tunnel --url http://localhost:3000` (hoặc ngrok) rồi gửi link nhận được.
 - Tạo phòng -> gửi mã 4 chữ hoặc link -> chủ phòng thêm máy (nếu muốn) và bấm "Bắt đầu ván".
-- `node test.js`: cho bot chơi ngẫu nhiên 400 ván để kiểm tra luật. `node test-bot.js`: 3 kiểu máy chơi 200 ván với nhau.
+- `node test.js`: cho bot chơi ngẫu nhiên 400 ván để kiểm tra luật. `node test-expansions.js`: kiểm tra từng luật mở rộng và cho bot chơi 1.200 ván với mọi tổ hợp. `node test-i18n.js`: kiểm tra độ đầy đủ của bản dịch Việt/Anh. `node test-bot.js`: 3 kiểu máy chơi 200 ván với nhau.
 
 ## Tính năng
 - 2–4 người, có thể thêm **máy** (Thương gia / Quý tộc / Tham lam, và **Cao thủ** – mạnh nhất) để đủ người.
@@ -14,6 +14,12 @@ Chạy: bấm đúp `start.bat` (hoặc `node server.js`). Không cần cài th�
 - **Nhạc nền + âm thanh** kiểu Phục Hưng (tự tổng hợp, không cần file), hoạt ảnh thẻ/đá bay, pháo giấy khi thắng. Nút 🎵 🔔 góc dưới phải.
 - **Đồng hồ lượt** (chủ phòng chọn 45–180 giây; hết giờ máy đi thay), nút **⏰ Nhắc** người đang suy nghĩ lâu.
 - **Chat + emoji**, **lịch sử nước đi**, **bảng thành tích nhóm**, **Ván mới** ngay cùng nhóm.
+- **Giao diện song ngữ Việt / English**: chọn ngôn ngữ ở màn tạo phòng hoặc trong sảnh (chủ phòng đổi cho cả phòng). Toàn bộ luật, nhật ký, lỗi, thông báo và tên máy đổi theo ngôn ngữ; mặc định là Tiếng Việt. Chuỗi dịch dùng chung ở `public/i18n.js`.
+- **Bộ mở rộng (4 mô-đun)**: chủ phòng bật/tắt từng mô-đun bằng checkbox ở sảnh; có thể bật riêng hoặc kết hợp.
+  - **Thành phố**: thay quý tộc bằng 3 thành phố. Đủ điểm và bonus thì nhận thành phố; chiếm thành phố sẽ kết thúc vòng hiện tại, và chỉ người đã có thành phố mới tranh ngôi vô địch.
+  - **Thương điếm**: mở 1 trong 5 quyền năng khi đủ bộ bonus, gồm lấy thêm đá sau khi mua, lấy thêm đá khi lấy đôi, vàng đáng gấp đôi, +5 điểm khi có quý tộc, và điểm theo số thương điếm.
+  - **Thành trì**: đặt/chuyển/gỡ thành trì để chặn thẻ; 3 thành trì cùng một thẻ cho phép Chinh phục thẻ đó sau hành động.
+  - **Phương Đông**: thêm 30 thẻ phát triển (2 thẻ ngửa và một chồng riêng mỗi cấp). Thẻ có thể cho 2 vàng ảo khi mua, sao chép màu bonus, nhận miễn phí một thẻ cấp thấp hơn, giữ riêng quý tộc, hoặc đổi 2 thẻ bonus cùng màu để lấy.
 - **Tuỳ chỉnh (nút ⚙️)**: 5 kiểu bàn, 4 bộ bài, chọn ảnh gốc hoặc tranh vẽ, 4 bản nhạc + chỉnh âm lượng. Màn kết quả có bục điểm, biểu đồ theo vòng, danh hiệu, pháo hoa khi thắng.
 - Thông báo đến lượt: nhấp nháy tiêu đề, rung điện thoại, 📣 bật thông báo trình duyệt khi ở tab khác.
 
@@ -23,7 +29,8 @@ Chạy: bấm đúp `start.bat` (hoặc `node server.js`). Không cần cài th�
 3. **Không mất ván khi server khởi động lại**: tạo database Redis miễn phí ở upstash.com, rồi trong Render -> Environment thêm 2 biến
    `UPSTASH_REDIS_REST_URL` và `UPSTASH_REDIS_REST_TOKEN` (lấy ở tab REST API của database). Không có 2 biến này thì lưu file `data/rooms.json` (chỉ hữu ích khi chạy ở máy mình, vì Render free xoá đĩa mỗi lần restart).
 
-Dữ liệu: 90 thẻ phát triển (40/30/20) và 10 quý tộc nằm trong public/data.js.
+Dữ liệu: 90 thẻ phát triển gốc (40/30/20) và 10 quý tộc nằm trong `public/data.js`; 30 thẻ Phương Đông nằm trong `public/orient-data.js`.
+Dữ liệu 15 thành phố, 5 thương điếm và luật Thành trì nằm ở đầu `engine.js`.
 
 Ảnh thẻ: `public/art/c{id}.jpg` (thẻ) và `n{id}.jpg` (quý tộc), cắt từ các trang PnP trong `art-src/`:
 - `python tools/build_art.py` — cắt lưới, khớp từng ô với id trong data.js theo bảng đọc tay ở `tools/cardmap.py`, xuất ảnh.
