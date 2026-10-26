@@ -12,6 +12,7 @@ const WIN_POINTS = 15;
 const MAX_TOKENS = 10;
 const MAX_RESERVED = 3;
 const MAX_STRONGHOLDS = 3;
+const MAX_UNDO_ACTIONS = 64;
 const EXPANSIONS = [
   { id: 'cities', name: 'Thành phố', desc: 'Thay quý tộc bằng 3 thành phố; chiếm thành phố để kết thúc ván.', nameKey: 'expansion.cities.name', descKey: 'expansion.cities.desc' },
   { id: 'tradingPosts', name: 'Thương điếm', desc: 'Mở khoá 5 quyền năng khi đủ bộ bonus.', nameKey: 'expansion.tradingPosts.name', descKey: 'expansion.tradingPosts.desc' },
@@ -65,6 +66,25 @@ function shuffle(a, rnd = Math.random) {
 }
 const zero = () => ({ white: 0, blue: 0, green: 0, red: 0, black: 0, gold: 0 });
 const sum = (t) => ALL.reduce((s, c) => s + (t[c] || 0), 0);
+function undoStack(g) {
+  if (!Object.prototype.hasOwnProperty.call(g, 'undo')) {
+    Object.defineProperty(g, 'undo', { value: [], writable: true, enumerable: false, configurable: true });
+  }
+  return g.undo;
+}
+function resetUndo(g) { undoStack(g).length = 0; }
+function canUndo(g, playerId) {
+  return g.phase !== 'over' && g.players[g.turn].id === playerId && undoStack(g).length > 0;
+}
+function undo(g, playerId) {
+  if (g.phase === 'over') throw new Error(msg(g, 'error.gameOver'));
+  if (g.players[g.turn].id !== playerId) throw new Error(msg(g, 'error.notYourTurn'));
+  const stack = undoStack(g);
+  if (!stack.length) throw new Error(msg(g, 'error.noUndo'));
+  const before = stack.pop();
+  for (const key of Object.keys(g)) delete g[key];
+  Object.assign(g, before);
+}
 
 function newGame(players, options = {}) {
   if (typeof options === 'function') options = { rnd: options };
@@ -111,6 +131,7 @@ function newGame(players, options = {}) {
   addLog(g, msg(g, 'log.start', { name: g.players[0].name }));
   const active = EXPANSIONS.filter((x) => expansions[x.id]).map((x) => tr(lang, x.nameKey));
   if (active.length) addLog(g, msg(g, 'log.expansions', { names: active.join(', ') }));
+  resetUndo(g);
   return g;
 }
 
@@ -134,6 +155,7 @@ function upgradeGame(g) {
     g.strongholds = { 1: Array.from({ length: slots }, () => []), 2: Array.from({ length: slots }, () => []), 3: Array.from({ length: slots }, () => []) };
   }
   if (g.expansions.orient && !g.orientBoard) upgradeOrient(g);
+  resetUndo(g);
   return g;
 }
 
@@ -351,23 +373,31 @@ function canAct(g, p) {
   return buyable.some((id) => canBuyCard(g, p, id));
 }
 
-function apply(g, playerId, a) {
+function apply(g, playerId, a, opts = {}) {
   if (g.phase === 'over') throw new Error(msg(g, 'error.gameOver'));
   const p = g.players[g.turn];
   if (p.id !== playerId) throw new Error(msg(g, 'error.notYourTurn'));
+  const turn = g.turn;
+  const before = opts.recordUndo ? JSON.parse(JSON.stringify(g)) : null;
   switch (g.phase) {
-    case 'main': return doMain(g, p, a);
-    case 'discard': return doDiscard(g, p, a);
-    case 'noble': return doNoble(g, p, a);
-    case 'tradingPost': return doTradingPost(g, p, a);
-    case 'city': return doCity(g, p, a);
-    case 'postToken': return doPostToken(g, p, a);
-    case 'stronghold': return doStronghold(g, p, a);
-    case 'conquest': return doConquest(g, p, a);
-    case 'orientCopy': return doOrientCopy(g, p, a);
-    case 'orientTake': return doOrientTake(g, p, a);
-    case 'orientNoble': return doOrientNoble(g, p, a);
+    case 'main': doMain(g, p, a); break;
+    case 'discard': doDiscard(g, p, a); break;
+    case 'noble': doNoble(g, p, a); break;
+    case 'tradingPost': doTradingPost(g, p, a); break;
+    case 'city': doCity(g, p, a); break;
+    case 'postToken': doPostToken(g, p, a); break;
+    case 'stronghold': doStronghold(g, p, a); break;
+    case 'conquest': doConquest(g, p, a); break;
+    case 'orientCopy': doOrientCopy(g, p, a); break;
+    case 'orientTake': doOrientTake(g, p, a); break;
+    case 'orientNoble': doOrientNoble(g, p, a); break;
     default: throw new Error(msg(g, 'error.invalidAction'));
+  }
+  if (g.phase === 'over' || g.turn !== turn) resetUndo(g);
+  else if (before) {
+    const stack = undoStack(g);
+    stack.push(before);
+    if (stack.length > MAX_UNDO_ACTIONS) stack.shift();
   }
 }
 
@@ -882,7 +912,7 @@ function finish(g) {
   addLog(g, msg(g, 'log.finish', { names: g.players.filter((p) => winners.includes(p.id)).map((p) => p.name).join(', ') }));
 }
 
-// Góc nhìn của 1 người chơi: ẩn thẻ úp của người khác, ẩn thứ tự chồng bài.
+// Góc nhìn của 1 người chơi: ẩn mọi thẻ đã giữ của người khác, ẩn thứ tự chồng bài.
 function viewFor(g, playerId) {
   const current = g.players[g.turn];
   const mine = current.id === playerId;
@@ -895,7 +925,7 @@ function viewFor(g, playerId) {
       strongholdsSupply: MAX_STRONGHOLDS - placedStrongholds(g, p.id), strongholdsPlaced: placedStrongholds(g, p.id),
       points: points(p), bonuses: bonuses(p), st: p.st || { take: 0, reserve: 0, buy: 0 },
       reserved: p.reserved.map((r) =>
-        (p.id === playerId || !r.fromDeck) ? { id: r.id, fromDeck: r.fromDeck } : { hidden: true, level: CARDS[r.id].level }),
+        p.id === playerId ? { id: r.id, fromDeck: r.fromDeck } : { hidden: true, level: CARDS[r.id].level }),
     })),
     bank: g.bank,
     deckCounts: { 1: g.decks[1].length, 2: g.decks[2].length, 3: g.decks[3].length },
@@ -916,10 +946,11 @@ function viewFor(g, playerId) {
     orientTakeChoices: g.phase === 'orientTake' && mine && g.orientFx ? orientTakeChoices(g, current, g.orientFx.tier) : [],
     orientNobleChoices: g.phase === 'orientNoble' && mine ? g.nobles.slice() : [],
     canPass: g.phase === 'main' && mine && !canAct(g, current),
+    canUndo: mine && canUndo(g, playerId),
   };
 }
 
-module.exports = { newGame, upgradeGame, apply, viewFor, payment, points, bonuses, canAct, addLog, availableColors, sum,
+module.exports = { newGame, upgradeGame, apply, undo, viewFor, payment, points, bonuses, canAct, addLog, availableColors, sum,
   eligibleNobles, eligibleCities, eligiblePosts, cityMet, strongholdOwners, strongholdActions, conquestOptions, postTokenChoices,
   effectiveCardBonus, hasVirtualGold, canBuyCard, isOrientCard: (id) => !!CARDS[id].orient, allFaceup,
   CARDS, ORIENT_CARDS, NOBLES, CITY_TILES, TRADING_POSTS, EXPANSIONS, DEFAULT_EXPANSIONS, COLORS, MAX_TOKENS, MAX_RESERVED, MAX_STRONGHOLDS, WIN_POINTS };

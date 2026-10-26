@@ -50,6 +50,23 @@ test('expansion defaults and game setup', () => {
   assert.ok(base.nobles.length > 0);
 });
 
+test('board-reserved cards are visible only to the player who reserved them', () => {
+  const g = make({});
+  const p = g.players[g.turn], q = g.players.find((x) => x.id !== p.id);
+  const cardId = g.board[2][0];
+
+  E.apply(g, p.id, { type: 'reserve', level: 2, index: 0 });
+
+  assert.deepStrictEqual(
+    E.viewFor(g, p.id).players.find((x) => x.id === p.id).reserved[0],
+    { id: cardId, fromDeck: false },
+  );
+  assert.deepStrictEqual(
+    E.viewFor(g, q.id).players.find((x) => x.id === p.id).reserved[0],
+    { hidden: true, level: 2 },
+  );
+});
+
 test('saved games are upgraded in place', () => {
   const g = make({});
   delete g.expansions;
@@ -62,6 +79,55 @@ test('saved games are upgraded in place', () => {
   assert.deepStrictEqual(g.cities, []);
   assert.deepStrictEqual(g.pendingRefills, []);
   for (const p of g.players) { assert.deepStrictEqual(p.cities, []); assert.deepStrictEqual(p.posts, []); }
+});
+
+test('undo reverts a gem take before discard finalizes the turn', () => {
+  const g = make({});
+  const p = g.players[g.turn];
+  p.tokens.black = 8;
+  const bank = { ...g.bank };
+
+  E.apply(g, p.id, { type: 'take', colors: ['white', 'blue', 'green'] }, { recordUndo: true });
+  assert.strictEqual(g.phase, 'discard');
+  assert.strictEqual(E.viewFor(g, p.id).canUndo, true);
+
+  E.undo(g, p.id);
+  assert.strictEqual(g.phase, 'main');
+  assert.strictEqual(g.players[g.turn].id, p.id);
+  assert.strictEqual(g.players[g.turn].tokens.black, 8);
+  assert.strictEqual(g.players[g.turn].tokens.white, 0);
+  assert.deepStrictEqual(g.bank, bank);
+  assert.strictEqual(E.viewFor(g, p.id).canUndo, false);
+  assert.throws(() => E.undo(g, p.id), /hoàn tác/);
+});
+
+test('undo reverts an action that entered an expansion phase', () => {
+  const g = make({ strongholds: true });
+  const p = g.players[g.turn];
+  const cardId = g.board[1][0];
+  const card = E.CARDS[cardId];
+  E.COLORS.forEach((c) => { p.tokens[c] = card.cost[c] || 0; });
+  const tokens = { ...p.tokens };
+
+  E.apply(g, p.id, { type: 'buy', from: 'board', level: 1, index: 0 }, { recordUndo: true });
+  assert.strictEqual(g.phase, 'stronghold');
+  assert.strictEqual(E.viewFor(g, p.id).canUndo, true);
+
+  E.undo(g, p.id);
+  assert.strictEqual(g.phase, 'main');
+  assert.strictEqual(g.board[1][0], cardId);
+  assert.deepStrictEqual(g.players[g.turn].tokens, tokens);
+  assert.strictEqual(E.viewFor(g, p.id).canUndo, false);
+});
+
+test('the turn-ending action cannot be undone', () => {
+  const g = make({});
+  const p = g.players[g.turn];
+
+  E.apply(g, p.id, { type: 'take', colors: ['white', 'blue', 'green'] }, { recordUndo: true });
+  assert.notStrictEqual(g.players[g.turn].id, p.id);
+  assert.strictEqual(E.viewFor(g, p.id).canUndo, false);
+  assert.throws(() => E.undo(g, g.players[g.turn].id), /hoàn tác/);
 });
 
 test('cities replace nobles and gate eligibility on score and bonuses', () => {

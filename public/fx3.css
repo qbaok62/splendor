@@ -1,66 +1,315 @@
 /* ===== Nâng cấp hình thức: font, màn chờ, chồng đá, vòng điểm... ===== */
-:root{--ui:"Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--head:"Playfair Display","Palatino Linotype","Times New Roman",serif}
-html,body{font-family:var(--ui)}
-button,input,select{font-family:var(--ui)}
-h2,h3,.ftitle,.turnflash,.floattxt,.hist .rh,.zoomtip .lbl{font-family:var(--head)}
-.banner{font-family:var(--ui);font-weight:600}
-.md h3{font-weight:700;letter-spacing:.01em}
-:focus-visible{outline:2px solid #ffe08a;outline-offset:2px;border-radius:6px}
-.card:focus-visible,.tok:focus-visible,.noble:focus-visible{outline-offset:3px}
+:root {
+  --ui:
+    "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --head: "Playfair Display", "Palatino Linotype", "Times New Roman", serif;
+}
+html,
+body {
+  font-family: var(--ui);
+}
+button,
+input,
+select {
+  font-family: var(--ui);
+}
+h2,
+h3,
+.ftitle,
+.turnflash,
+.floattxt,
+.hist .rh,
+.zoomtip .lbl {
+  font-family: var(--head);
+}
+.banner {
+  font-family: var(--ui);
+  font-weight: 600;
+}
+.md h3 {
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+:focus-visible {
+  outline: 2px solid #ffe08a;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.card:focus-visible,
+.tok:focus-visible,
+.noble:focus-visible {
+  outline-offset: 3px;
+}
 
 /* màn chờ */
-#splash{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 35%,#3a2f22,#14121a 70%);transition:opacity .6s ease,visibility .6s}
-#splash.hide{opacity:0;visibility:hidden}
-#splash .sp-in{display:flex;flex-direction:column;align-items:center;gap:14px}
-#splash svg{filter:drop-shadow(0 0 16px #e8b92399);animation:spulse 1.6s ease-in-out infinite}
-#splash h1{font-family:var(--serif);font-size:2.2rem;letter-spacing:.2em;margin:0;background:linear-gradient(180deg,#fff1b8,#e8b923 55%,#a8730a);-webkit-background-clip:text;background-clip:text;color:transparent}
-.sp-bar{width:160px;height:3px;border-radius:2px;background:#ffffff1a;overflow:hidden}
-.sp-bar i{display:block;height:100%;width:40%;background:linear-gradient(90deg,transparent,#e8b923,transparent);animation:sload 1.1s ease-in-out infinite}
-@keyframes spulse{50%{transform:scale(1.1) rotate(4deg)}}
-@keyframes sload{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}
+#splash {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at 50% 35%, #3a2f22, #14121a 70%);
+  transition:
+    opacity 0.6s ease,
+    visibility 0.6s;
+}
+#splash.hide {
+  opacity: 0;
+  visibility: hidden;
+}
+#splash .sp-in {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+#splash svg {
+  filter: drop-shadow(0 0 16px #e8b92399);
+  animation: spulse 1.6s ease-in-out infinite;
+}
+#splash h1 {
+  font-family: var(--serif);
+  font-size: 2.2rem;
+  letter-spacing: 0.2em;
+  margin: 0;
+  background: linear-gradient(180deg, #fff1b8, #e8b923 55%, #a8730a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.sp-bar {
+  width: 160px;
+  height: 3px;
+  border-radius: 2px;
+  background: #ffffff1a;
+  overflow: hidden;
+}
+.sp-bar i {
+  display: block;
+  height: 100%;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, #e8b923, transparent);
+  animation: sload 1.1s ease-in-out infinite;
+}
+@keyframes spulse {
+  50% {
+    transform: scale(1.1) rotate(4deg);
+  }
+}
+@keyframes sload {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
+}
 
 /* chồng đá quý ở bàn */
-.tok:not(.mini){box-shadow:0 0 0 1.5px #0009,var(--stk,0 4px 0 #0006,0 6px 12px #000a)}
-.tok.sel:not(.mini){box-shadow:0 0 0 3px var(--acc),0 0 18px #e8b923aa,var(--stk,0 6px 12px #000a)}
-.bank{gap:22px}
-.tok.zero{--stk:0 0 0 #0000}
+.tok:not(.mini) {
+  box-shadow:
+    0 0 0 1.5px #0009,
+    var(--stk, 0 4px 0 #0006, 0 6px 12px #000a);
+}
+.tok.sel:not(.mini) {
+  box-shadow:
+    0 0 0 3px var(--acc),
+    0 0 18px #e8b923aa,
+    var(--stk, 0 6px 12px #000a);
+}
+.bank {
+  gap: 22px;
+}
+.tok.zero {
+  --stk: 0 0 0 #0000;
+}
 
 /* vòng tiến độ điểm (tới 15) */
-.pl .pt{position:relative;border:none;width:2.5rem;height:2.5rem;background:radial-gradient(circle,#1a140a 0 57%,transparent 59%),conic-gradient(#e8b923 calc(var(--p,0)*1%),#3b2d12 0);box-shadow:0 0 0 1.5px #d8b25a66,0 2px 6px #000a;font-size:1.05rem}
-.pl .pt b{font-weight:800;-webkit-text-stroke:0}
+.pl .pt {
+  position: relative;
+  border: none;
+  width: 2.5rem;
+  height: 2.5rem;
+  background:
+    radial-gradient(circle, #1a140a 0 57%, transparent 59%),
+    conic-gradient(#e8b923 calc(var(--p, 0) * 1%), #3b2d12 0);
+  box-shadow:
+    0 0 0 1.5px #d8b25a66,
+    0 2px 6px #000a;
+  font-size: 1.05rem;
+}
+.pl .pt b {
+  font-weight: 800;
+  -webkit-text-stroke: 0;
+}
 
 /* tiến độ quý tộc (thanh nhỏ dưới ô) */
-.nprog{position:absolute;left:5px;right:5px;bottom:4px;height:5px;border-radius:3px;background:#000a;border:1px solid #0009;overflow:hidden;pointer-events:none;z-index:2}
-.nprog u{display:block;height:100%;background:linear-gradient(90deg,#8a6a10,#ffe08a);box-shadow:0 0 6px #e8b923;transition:width .5s}
-.noble{overflow:hidden}
+.nprog {
+  position: absolute;
+  left: 5px;
+  right: 5px;
+  bottom: 4px;
+  height: 5px;
+  border-radius: 3px;
+  background: #000a;
+  border: 1px solid #0009;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+}
+.nprog u {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #8a6a10, #ffe08a);
+  box-shadow: 0 0 6px #e8b923;
+  transition: width 0.5s;
+}
+.noble {
+  overflow: hidden;
+}
 
-/* thẻ chưa đủ tiền: mờ nhẹ cho dễ nhìn thẻ mua được */
-.card.nope{filter:saturate(.7) brightness(.82)}
-.card.nope:hover,.card.nope.tilt{filter:none}
+.card.nope:hover,
+.card.nope.tilt {
+  filter: saturate(1.2);
+}
 
 /* hộp xem trước khi rê chuột */
-.zoomtip{position:fixed;z-index:120;pointer-events:none;display:flex;gap:12px;padding:12px;border-radius:14px;background:linear-gradient(180deg,#2d2536f5,#1a1620f5);border:1px solid #d8b25a;box-shadow:0 18px 44px #000d,0 0 0 3px #00000050;animation:popin .18s ease both}
-.zoomtip .card{--cw:190px;cursor:default;transform:none!important;box-shadow:0 6px 16px #000b}
-.zoomtip .zi{display:flex;flex-direction:column;gap:8px;justify-content:center;min-width:120px;max-width:150px;font-size:.88rem}
-.zoomtip .zc{display:flex;gap:8px;flex-wrap:wrap}
-.zoomtip .zc .cost{font-size:1.3rem}
-.zoomtip b.ok{color:#6be39a}.zoomtip b.no{color:#ff9a92}
-.zoomtip .lbl{text-transform:none;letter-spacing:.02em;font-size:.8rem}
+.zoomtip {
+  position: fixed;
+  z-index: 120;
+  pointer-events: none;
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #2d2536f5, #1a1620f5);
+  border: 1px solid #d8b25a;
+  box-shadow:
+    0 18px 44px #000d,
+    0 0 0 3px #00000050;
+  animation: popin 0.18s ease both;
+}
+.zoomtip .card {
+  --cw: 190px;
+  cursor: default;
+  transform: none !important;
+  box-shadow: 0 6px 16px #000b;
+}
+.zoomtip .zi {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  min-width: 120px;
+  max-width: 150px;
+  font-size: 0.88rem;
+}
+.zoomtip .zc {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.zoomtip .zc .cost {
+  font-size: 1.3rem;
+}
+.zoomtip b.ok {
+  color: #6be39a;
+}
+.zoomtip b.no {
+  color: #ff9a92;
+}
+.zoomtip .lbl {
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-size: 0.8rem;
+}
 
 /* mất kết nối */
-.conn{position:fixed;top:0;left:0;right:0;z-index:300;text-align:center;padding:6px;background:linear-gradient(180deg,#b8332b,#8c231d);color:#fff;font-weight:700;font-size:.85rem;box-shadow:0 4px 14px #000a;animation:slidein .3s ease both}
+.conn {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 300;
+  text-align: center;
+  padding: 6px;
+  background: linear-gradient(180deg, #b8332b, #8c231d);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  box-shadow: 0 4px 14px #000a;
+  animation: slidein 0.3s ease both;
+}
 
 /* màn hình vào game: gọn hơn, có điểm nhấn */
-.box h1{font-size:clamp(2rem,9vw,2.8rem)}
-.sub{font-family:var(--head);font-style:italic;letter-spacing:.01em}
-.center{position:relative}
-.center::before{content:"";position:absolute;width:560px;height:560px;max-width:120vw;border-radius:50%;pointer-events:none;
-  background:conic-gradient(from 0deg,#e8b92300,#e8b92322,#e8b92300,#e8b9231c,#e8b92300);filter:blur(24px);animation:spin 40s linear infinite}
-.box{z-index:1}
+.box h1 {
+  font-size: clamp(2rem, 9vw, 2.8rem);
+}
+.sub {
+  font-family: var(--head);
+  font-style: italic;
+  letter-spacing: 0.01em;
+}
+.center {
+  position: relative;
+}
+.center::before {
+  content: "";
+  position: absolute;
+  width: 560px;
+  height: 560px;
+  max-width: 120vw;
+  border-radius: 50%;
+  pointer-events: none;
+  background: conic-gradient(
+    from 0deg,
+    #e8b92300,
+    #e8b92322,
+    #e8b92300,
+    #e8b9231c,
+    #e8b92300
+  );
+  filter: blur(24px);
+  animation: spin 40s linear infinite;
+}
+.box {
+  z-index: 1;
+}
 
 /* thanh cuộn kiểu tối */
-*{scrollbar-width:thin;scrollbar-color:#6b5631 #1a1620}
-::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#6b5631;border-radius:4px}::-webkit-scrollbar-track{background:#1a1620}
-::selection{background:#e8b92355}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #6b5631 #1a1620;
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #6b5631;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-track {
+  background: #1a1620;
+}
+::selection {
+  background: #e8b92355;
+}
 
-@media(max-width:560px){.snd{right:8px;bottom:8px;gap:4px}.snd button{width:34px;height:34px;font-size:.95rem;opacity:.92}.wrap{padding-bottom:56px}}
+@media (max-width: 560px) {
+  .snd {
+    right: 8px;
+    bottom: 8px;
+    gap: 4px;
+  }
+  .snd button {
+    width: 34px;
+    height: 34px;
+    font-size: 0.95rem;
+    opacity: 0.92;
+  }
+  .wrap {
+    padding-bottom: 56px;
+  }
+}

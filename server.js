@@ -15,7 +15,7 @@ const { tr, normalizeLang, LANGS } = require('./public/i18n.js');
 const PORT = process.env.PORT || 3000;
 const PUB = path.join(__dirname, 'public');
 const rooms = new Map();
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webmanifest': 'application/manifest+json' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.webmanifest': 'application/manifest+json' };
 const TIMERS = [0, 45, 60, 90, 120, 180];
 const ROOM_TTL = 3 * 86400e3;
 
@@ -255,8 +255,14 @@ async function api(req, res, url) {
       }
       case '/api/action': {
         if (!room.game) throw new Error(tt(room, 'server.notStarted'));
-        engine.apply(room.game, m.id, b.action || {});
+        engine.apply(room.game, m.id, b.action || {}, { recordUndo: true });
         room.deadline = 0;
+        break;
+      }
+      case '/api/undo': {
+        if (!room.game) throw new Error(tt(room, 'server.notStarted'));
+        engine.undo(room.game, m.id);
+        room.deadline = 0; room.tkey = null;
         break;
       }
       case '/api/lobby': needHost(room, m); room.game = null; room.deadline = 0; room.tkey = null; break; // về sảnh
